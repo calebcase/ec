@@ -1,0 +1,87 @@
+EC - Exceptions in C
+
+This is yet another exception handling implementation for C using
+setjmp/longjmp. It offers the following features:
+
+ * A library, permitting simultaneous use by multiple projects.
+
+ * Automatic per-thread exception stacks.
+
+ * Fast, exception aware state unwinding.
+
+EC has a companion project ECX which aims to provide exception throwing
+equivalents for common libraries. Check ECX before writing a exception wrapper
+for a library! Consider sending patches if it isn't already there :o}
+
+Reasons you may enjoy using EC:
+
+ * The most common error handling strategy in your code or the users of your
+   code is to print a message and exit.
+
+ * You find duplicating return code handling every time you call a function
+   tedious and an unnecessary source of bugs.
+
+ * You would rather not check for and propagate an error code up the call stack
+   only to exit.
+
+ * Attempting to avoid code bloat for rare error cases you've decided to call
+   exit(...) instead. Now your library users are complaining that they can't
+   use your library in their server or system code.
+
+ * You want atomic transactions, but don't want all the work that comes with
+   the return code handling.
+
+The following rules can save you some pain when using EC:
+
+ * Read the include/ec/ec.h header file.
+    - Already read it? Take a look at test/{benchmark,check,example}.
+
+ * Use ec_with(...) and friends over ec_try.
+    - setjmp(...) is comparatively slow (see the benchmarks in test/benchmark)
+      and the sigjmp_buf can be rather large (200B on my system). ec_try is an
+      ICBM and ec_with(...) is a yummy cookie. Use appropriately.
+
+ * Only use ec_try if you can reasonable recover and do something useful.
+    - Specifically don't use ec_try only to ec_catch, print out the error, and
+      exit. The default behavior already does this without wasting time and
+      space on a frivolous ec_try/ec_catch.
+
+ * Use ec_shadow_on_x(...) and friends for API stability.
+    - If you export functions that throw exceptions, then those EXCEPTIONS ARE
+      PART OF YOUR API.
+    - Specifically don't use ec_try only to ec_catch and throw a new exception.
+      It will slow every call into your code and is precisely the reason
+      ec_shadow_on_x exists.
+
+ * If you use ec_catch_a(...), but don't have a reasonable thing to do in
+   ec_catch, then use ec_rethrow.
+    - ec_rethrow maintains the original exception (file, function, line, and
+      data) and saves time otherwise wasted copying and freeing.
+
+ * Don't jump out of the macro blocks manually.
+    - Specifically don't use 'break', 'return', or 'goto' to leave the scope of
+      the macro blocks. Doing so will corrupt EC's state resulting in extremely
+      bad, undefined behavior such as jumping into a function that has already
+      returned.
+    - It is permissible to jump around INSIDE a given macro block (e.g. goto a
+      label defined INSIDE the block).
+
+ * Don't use variables inside and outside of the ec_try block.
+    - You are using ec_try? See the rules above.
+    - If you must do this, and those variables are using automatic storage,
+      then you must use the volatile qualifier. Failure to do this will result
+      in copious amounts of inexplicable pain. See the volatile tests in
+      test/check.
+
+ * Tempted to call the ec_*(...) functions directly rather than use the
+   provided macros? DON'T.
+    - Specifically don't call ec_get_data() from within an ec_catch. You don't
+      know what the data is and you can't do anything useful with it. Use
+      ec_catch_a(...).
+    - The macros are insufficient for your use and you really must call
+      ec_*(...) functions directly: Consider sending patches :o}
+
+EC's implementation was inspired by cexcept, CException, tales about Symbian,
+and various papers (e.g. http://www.freetype.org/david/reliable-c.html). Check
+them out if you are curious!
+
