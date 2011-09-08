@@ -189,6 +189,7 @@
             ec_env(NULL) == NULL ? \
                 ec_fprint(stderr), \
                 fprintf(stderr, "Error stack empty: Abort!\n"), \
+                ec_clean(), \
                 abort() : \
                 siglongjmp(*ec_env(NULL), 0)) \
             ec_throw_data_ = \
