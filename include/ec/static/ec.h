@@ -83,6 +83,14 @@ struct ec {
         /* The line in the file that the exception occurred on. */
         unsigned int line;
     } place;
+
+    struct {
+        /* Number of traces in buffer. */
+        unsigned int size;
+
+        /* A buffer for backtrace return addresses. */
+        void *buf[128];
+    } bt;
 };
 
 #endif /* EC_STATIC_H */

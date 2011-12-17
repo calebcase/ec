@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <execinfo.h>
 
 /* Global per-thread error stack. */
 __thread struct ec ec_stack = {
@@ -35,6 +36,10 @@ __thread struct ec ec_stack = {
         .file = NULL,
         .function = NULL,
         .line = 0,
+    },
+    .bt = {
+        .size = 0,
+        .buf = {0},
     },
 };
 
@@ -135,6 +140,8 @@ ec_set_error(
     ec_stack.error.data = data;
     ec_stack.error.data_cleanup = data_cleanup;
     ec_stack.error.data_fprint = data_fprint;
+
+    ec_stack.bt.size = backtrace(ec_stack.bt.buf, sizeof(ec_stack.bt.buf));
 }
 
 void
@@ -197,6 +204,9 @@ ec_clean()
     ec_stack.place.file = NULL;
     ec_stack.place.function = NULL;
     ec_stack.place.line = 0;
+
+    ec_stack.bt.size = 0;
+    memset(ec_stack.bt.buf, '\0', sizeof(ec_stack.bt.buf));
 }
 
 void
@@ -212,6 +222,16 @@ ec_fprint(FILE *stream)
     if (ec_stack.error.data_fprint != NULL) {
         fprintf(stream, " ");
         ec_stack.error.data_fprint(stream, ec_stack.error.data);
+    }
+
+    if (ec_stack.bt.size > 1) {
+        int errsv = errno;
+        int fd = fileno(stream);
+        if (fd != -1) {
+            fprintf(stream, "\n\nBacktrace:\n\n");
+            backtrace_symbols_fd(ec_stack.bt.buf + 1, ec_stack.bt.size - 1, fd);
+        }
+        errno = errsv;
     }
 
     fprintf(stream, "\n");
