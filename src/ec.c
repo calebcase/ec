@@ -44,7 +44,7 @@ int
 ec_winding_init_and_wind(
         struct ec_winding *winding,
         void *data,
-        void (*unwind)(void *data))
+        ec_unwind_f unwind)
 {
     winding->next = ec_stack.winding;
     winding->data = data;

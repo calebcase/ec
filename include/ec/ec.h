@@ -400,10 +400,12 @@ extern const char ECX_EXDEV[];
  *
  ***/
 
+typedef void (*ec_unwind_f)(void *data);
+
 struct ec_winding {
     struct ec_winding *next;
     void *data;
-    void (*unwind)(void *data);
+    ec_unwind_f unwind;
 };
 
 /* Initializes winding and adds to the winding stack.
@@ -413,7 +415,7 @@ struct ec_winding {
 int ec_winding_init_and_wind(
         struct ec_winding *winding,
         void *data,
-        void (*unwind)(void *data));
+        ec_unwind_f unwind);
 
 /*** Error Stack
  *
