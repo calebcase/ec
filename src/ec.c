@@ -57,10 +57,10 @@ ec_winding_init_and_wind(
 
 /*** Error Stack ***/
 
-sigjmp_buf *
-ec_swap_env(sigjmp_buf *env)
+ec_jmp_buf *
+ec_swap_env(ec_jmp_buf *env)
 {
-    sigjmp_buf *previous = ec_stack.env;
+    ec_jmp_buf *previous = ec_stack.env;
     ec_stack.env = env;
     return previous;
 }
@@ -73,8 +73,8 @@ ec_swap_winding(struct ec_winding *winding)
     return previous;
 }
 
-sigjmp_buf *
-ec_env(sigjmp_buf *env)
+ec_jmp_buf *
+ec_env(ec_jmp_buf *env)
 {
     if (env != NULL) ec_stack.env = env;
     return ec_stack.env;

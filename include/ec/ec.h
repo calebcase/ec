@@ -24,6 +24,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef HAVE_WORKING_FORK
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
+
+#if _POSIX_C_SOURCE >= 1 || _XOPEN_SOURCE || _POSIX_C_SOURCE
+#define ec_jmp_buf sigjmp_buf
+#define ec_setjmp(env) sigsetjmp(env, 1)
+#define ec_longjmp siglongjmp
+#else
+#define ec_jmp_buf jmp_buf
+#define ec_setjmp setjmp
+#define ec_longjmp longjmp
+#endif
+
 /*** Exception Macros
  *
  * These macros are structured similar to the if/else if/else blocks.
@@ -88,23 +104,25 @@
  *    to use a compiler which supports them. C99 for loops make it possible to
  *    avoid the use of unpleasant begin/end pairs.
  *
- *  - Signal aware sigsetjmp/siglongjmp are used. This implies a POSIX
- *    environment.
+ *  - Signal aware sigsetjmp/siglongjmp are used if available (POSIX).
  *
  *  - Arguments to macros may be evaluated multiple times (even if the current
  *    version doesn't). Do not pass them statements like 'i++' or any other
  *    statement which would result in a side-effect.
  *
+ *  - A coredump is created whenever an exception is thrown if a working
+ *    fork() is available (POSIX).
+ *
  ***/
 
-/* Saves the current execution context via sigsetjmp(...). If an exception is
+/* Saves the current execution context via ec_setjmp(...). If an exception is
  * thrown via ec_throw(...) then execution resumes here. ec_try may be followed
  * by one or more ec_catch_a(...) and must end with either an ec_catch or
  * ec_finally.
  */
 #define ec_try \
     /* Setup jump buffer. */ \
-    for (sigjmp_buf ec_env_, \
+    for (ec_jmp_buf ec_env_, \
          *ec_penv_ = ec_swap_env(&ec_env_), \
          *ec_try_outer_once_ = NULL; \
          ec_try_outer_once_ == NULL; \
@@ -116,7 +134,7 @@
              ec_winding_once_ = (void *)1) \
             /* Save current location. */ \
             /* This is where we are restored to after a throw. */ \
-            if (sigsetjmp(ec_env_, 1) == 0) { \
+            if (ec_setjmp(ec_env_) == 0) { \
                 /* If an exception is throw, then the increment is not run, */ \
                 /* otherwise the previous exception environment and winding */ \
                 /* are restored. */ \
@@ -181,6 +199,7 @@
  *
  * Before the jump to the catching code the winding stack is unwound.
  */
+#ifdef HAVE_WORKING_FORK
 #define ec_throw(t,c,p) \
     for (   void *ec_throw_data_ = NULL;; \
             ec_set_error((t), ec_throw_data_, (c), (p)), \
@@ -191,8 +210,23 @@
                 fprintf(stderr, "Error stack empty: Abort!\n"), \
                 ec_clean(), \
                 abort() : \
-                siglongjmp(*ec_env(NULL), 0)) \
-            ec_throw_data_ = \
+                (   fork() == 0 ? abort() : wait(NULL), \
+                    ec_longjmp(*ec_env(NULL), 0))) \
+            ec_throw_data_ =
+#else
+#define ec_throw(t,c,p) \
+    for (   void *ec_throw_data_ = NULL;; \
+            ec_set_error((t), ec_throw_data_, (c), (p)), \
+            ec_set_place(__FILE__, __func__, __LINE__), \
+            ec_unwind(EC_UNWIND_ALL), \
+            ec_env(NULL) == NULL ? \
+                ec_fprint(stderr), \
+                fprintf(stderr, "Error stack empty: Abort!\n"), \
+                ec_clean(), \
+                abort() : \
+                ec_longjmp(*ec_env(NULL), 0)) \
+            ec_throw_data_ =
+#endif
 
 /* Utility macro for throwing an exception with a C string as data. */
 #define ec_throw_str(t) ec_throw((t), free, (void (*)(FILE *, void *))ec_fprint_str)
@@ -219,7 +253,7 @@
             abort(); \
         } \
         ec_unwind(EC_UNWIND_ALL); \
-        siglongjmp(*ec_env(NULL), 0); \
+        ec_longjmp(*ec_env(NULL), 0); \
     } \
 
 /* Calls the function u passing the data d as its argument. This is called
@@ -435,7 +469,7 @@ struct ec;
  *
  * Return current value and replace with provided.
  */
-sigjmp_buf *ec_swap_env(sigjmp_buf *env);
+ec_jmp_buf *ec_swap_env(ec_jmp_buf *env);
 struct ec_winding *ec_swap_winding(struct ec_winding *winding);
 
 /* Get/Set:
@@ -443,7 +477,7 @@ struct ec_winding *ec_swap_winding(struct ec_winding *winding);
  * Returns the current value of the given field. If the argument is non-NULL,
  * then it sets the current value to it (this will be the value returned).
  */
-sigjmp_buf *ec_env(sigjmp_buf *env);
+ec_jmp_buf *ec_env(ec_jmp_buf *env);
 const char *ec_type(const char *type);
 
 /* Get the current exception data. */
