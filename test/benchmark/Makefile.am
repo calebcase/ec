@@ -1,4 +1,4 @@
-AM_CFLAGS = -I$(top_srcdir)/include
+AM_CFLAGS = -I$(top_srcdir)/include --include=config.h
 check_PROGRAMS = speed speed-try speed-try-throw speed-with speed-with-on-x speed-try-throw-with-on-x size
 
 speed_try_SOURCES = speed.c
