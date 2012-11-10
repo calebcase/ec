@@ -5,5 +5,6 @@ check_PROGRAMS = shadow thread try volatile with
 
 thread_CFLAGS = -D_GNU_SOURCE -lpthread $(AM_CFLAGS)
 
-LDADD = $(top_builddir)/src/libec.la @CHECK_LIBS@
+volatile_CFLAGS = $(AM_CFLAGS) -O2
 
+LDADD = $(top_builddir)/src/libec.la @CHECK_LIBS@
