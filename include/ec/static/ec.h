@@ -40,7 +40,7 @@ struct ec {
     /* Jump buffer storing the location to jump back to. */
     ec_jmp_buf *env;
 
-    /* Data which needs to unwound on an exception. */
+    /* Data which needs to be unwound on an exception. */
     struct ec_winding *winding;
 
     struct {
