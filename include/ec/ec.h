@@ -231,11 +231,23 @@
 /* Utility macro for throwing an exception with a C string as data. */
 #define ec_throw_str(t) ec_throw((t), free, (void (*)(FILE *, void *))ec_fprint_str)
 
+/* Utility macro for throwing an exception with a static C string as data. */
 #define ec_throw_str_static(t,d) \
 { \
     static const char ec_throw_str_static_[] = d; \
     ec_throw((t), NULL, (void (*)(FILE *, void *))ec_fprint_str) (void *)ec_throw_str_static_; \
 } \
+
+/* Utility macro for throwing an exception with a format string as data. */
+#ifdef _GNU_SOURCE
+#define ec_throw_strf(t,d,...) \
+{ \
+    char *final = NULL; \
+    int status = asprintf(&final, d, __VA_ARGS__); \
+    if (status < 0) { final = NULL; } \
+    ec_throw_str(t) final; \
+}
+#endif /* _GNU_SOURCE */
 
 /* Throws the exception type associated with the given error number. */
 #define ec_throw_errno(e,c) ec_throw(ec_errno_type((e)), (c), (void (*)(FILE *, void *))ec_fprint_errno_str)
@@ -439,7 +451,7 @@ typedef void (*ec_unwind_f)(void *data);
 struct ec_winding {
     struct ec_winding *next;
     void *data;
-    ec_unwind_f unwind;
+    void (*unwind)();
 };
 
 /* Initializes winding and adds to the winding stack.
@@ -449,7 +461,7 @@ struct ec_winding {
 int ec_winding_init_and_wind(
         struct ec_winding *winding,
         void *data,
-        ec_unwind_f unwind);
+        void (*unwind)());
 
 /*** Error Stack
  *
