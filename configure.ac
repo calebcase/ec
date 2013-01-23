@@ -1,5 +1,6 @@
 AC_INIT([ec], [0.1], [calebcase@gmail.com])
 : ${CFLAGS="-g"}
+AC_USE_SYSTEM_EXTENSIONS
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror])
