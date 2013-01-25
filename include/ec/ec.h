@@ -242,10 +242,10 @@
 #ifdef _GNU_SOURCE
 #define ec_throw_strf(t,d,...) \
 { \
-    char *final = NULL; \
-    int status = asprintf(&final, d, __VA_ARGS__); \
-    if (status < 0) { final = NULL; } \
-    ec_throw_str(t) final; \
+    char *ec_final_ = NULL; \
+    int ec_status_ = asprintf(&ec_final_, d, __VA_ARGS__); \
+    if (ec_status_ < 0) { ec_final_ = NULL; } \
+    ec_throw_str(t) ec_final_; \
 }
 #endif /* _GNU_SOURCE */
 
