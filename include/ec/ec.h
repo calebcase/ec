@@ -275,12 +275,29 @@
  * Using ec_with is preferable to ec_try/ec_finally because of the cost associated
  * with setting up the ec_try. ec_with is significantly faster and has lower
  * stack memory usage.
+ *
+ * Note: It bears repeating: Do NOT pass statements with side-effects. In
+ * particular, it is tempting to sometimes pass an statement that takes the
+ * address of a type. For example:
+ *
+ * int i = 3;
+ * ec_with(&i, u) {
+ *   ...
+ * }
+ *
+ * However, the '&i' is a side-effectful statement. Instead, I suggest the
+ * following method:
+ *
+ * int i = 3, *ip = &i;
+ * ec_with(ip, u) {
+ *   ...
+ * }
  */
 #define ec_with(d,u) \
     for (struct ec_winding ec_winding_, \
          *ec_with_once_ = NULL; \
          ec_with_once_ == NULL && \
-         ec_winding_init_and_wind(&ec_winding_, (d), (u)); \
+         ec_winding_init_and_wind(&ec_winding_, (void **)&(d), (u)); \
          ec_unwind(EC_UNWIND_ONE), \
          ec_with_once_ = (void *)1) \
 
@@ -295,7 +312,7 @@
     for (struct ec_winding ec_winding_, \
          *ec_with_once_ = NULL; \
          ec_with_once_ == NULL && \
-         ec_winding_init_and_wind(&ec_winding_, (d), (u)); \
+         ec_winding_init_and_wind(&ec_winding_, (void **)&(d), (u)); \
          ec_unwind(EC_UNWIND_DISCARD_ONE), \
          ec_with_once_ = (void *)1) \
 
@@ -304,7 +321,8 @@
  * requiring more involved transformation of the exception type and data.
  */
 #define ec_shadow_on_x_with(ot,nt,s) \
-    for (const char *ec_types_[2] = {ot, nt}, \
+    for (const char *ec_types_storage_[2] = {ot, nt}, \
+         *ec_types_ = (char *)&ec_types_storage_, \
          *ec_shadow_once_ = NULL; \
          ec_shadow_once_ == NULL; \
          ec_shadow_once_ = (void *)1) \
@@ -450,7 +468,7 @@ typedef void (*ec_unwind_f)(void *data);
 
 struct ec_winding {
     struct ec_winding *next;
-    void *data;
+    void **data;
     void (*unwind)();
 };
 
@@ -460,7 +478,7 @@ struct ec_winding {
  */
 int ec_winding_init_and_wind(
         struct ec_winding *winding,
-        void *data,
+        void **data,
         void (*unwind)());
 
 /*** Error Stack

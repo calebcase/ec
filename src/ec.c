@@ -43,7 +43,7 @@ __thread struct ec ec_stack = {
 int
 ec_winding_init_and_wind(
         struct ec_winding *winding,
-        void *data,
+        void **data,
         void (*unwind)())
 {
     winding->next = ec_stack.winding;
@@ -169,12 +169,12 @@ ec_unwind(enum ec_unwind_amount amount)
             break;
         case EC_UNWIND_ONE:
             ec_stack.winding = ec_stack.winding->next;
-            head->unwind(head->data);
+            head->unwind(*(head->data));
             break;
         case EC_UNWIND_ALL:
             while (head != NULL) {
                 ec_stack.winding = ec_stack.winding->next;
-                head->unwind(head->data);
+                head->unwind(*(head->data));
                 head = ec_stack.winding;
             }
             break;

@@ -7,4 +7,4 @@ thread_CFLAGS = -lpthread $(AM_CFLAGS)
 
 volatile_CFLAGS = $(AM_CFLAGS) -O2
 
-LDADD = $(top_builddir)/src/libec.la @CHECK_LIBS@
+LDADD = $(top_builddir)/src/libec.la -lpthread @CHECK_LIBS@

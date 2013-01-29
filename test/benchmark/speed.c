@@ -42,20 +42,21 @@ void inc(size_t *i)
 size_t lots(void (*action)(size_t *), size_t total)
 {
     size_t i = 0;
+    size_t *ip = &i;
 
 #ifdef DO_TRY
     ec_try {
 #endif
 
 #ifdef DO_WITH
-        ec_with(&i, (void (*)(void *))dec)
+        ec_with(ip, (void (*)(void *))dec)
 #endif
 
 #ifdef DO_WITH_ON_X
-        ec_with_on_x(&i, (void (*)(void *))dec)
+        ec_with_on_x(ip, (void (*)(void *))dec)
 #endif
 
-        action(&i);
+        action(ip);
 
 #ifdef DO_TRY
     }

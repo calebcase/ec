@@ -49,10 +49,10 @@ void nada(void *n) { }
 void
 with()
 {
-    int here = 0;
+    int here = 0, *nearby = &here;
     s_with = (uintptr_t)&here;
 
-    ec_with((void *)&here, nada) {
+    ec_with(nearby, nada) {
         call();
     }
 }
