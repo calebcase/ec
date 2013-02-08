@@ -228,7 +228,7 @@ ec_fprint_errno_str(FILE *stream, char *data)
 {
     fprintf(stream, "%s", strerror(errno));
     if (data != NULL) {
-        fprintf(stream, " %s", data);
+        fprintf(stream, ": %s", data);
     }
 }
 
